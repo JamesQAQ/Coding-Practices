@@ -1,0 +1,13 @@
+query problemsetQuestionList($categorySlug: String, $limit: Int, $filters: QuestionListFilterInput) {
+  problemsetQuestionList: questionList(
+    categorySlug: $categorySlug
+    limit: $limit
+    filters: $filters
+  ) {
+    questions: data {
+      frontendQuestionId: questionFrontendId
+      title
+      titleSlug
+    }
+  }
+}

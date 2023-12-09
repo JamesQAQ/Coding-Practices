@@ -1,0 +1,9 @@
+query submissionDetails($submissionId: Int!) {
+  submissionDetails(submissionId: $submissionId) {
+    code
+    timestamp
+    lang {
+      name
+    }
+  }
+}

@@ -1,0 +1,12 @@
+query submissionList($offset: Int!, $limit: Int!, $questionSlug: String!, $status: Int) {
+  questionSubmissionList(
+    offset: $offset
+    limit: $limit
+    questionSlug: $questionSlug
+    status: $status
+  ) {
+    submissions {
+      id
+    }
+  }
+}

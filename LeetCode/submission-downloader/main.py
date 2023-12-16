@@ -31,6 +31,13 @@ class ProblemStatus(enum.Enum):
   TRIED = 3
 
 
+
+class ProblemDifficulty(enum.Enum):
+  EASY = 1
+  MEDIUM = 2
+  HARD = 3
+
+
 class SubmissionStatus(enum.Enum):
   ACCEPTED = 10
   WRONG_ANSWER = 11
@@ -60,16 +67,21 @@ class Submission:
 class LeetCodeCrawler:
 
   def GetProblemList(
-      self, status: ProblemStatus, limit: int = LIMIT_MAX) -> List[Problem]:
+      self,
+      status: ProblemStatus,
+      difficulty: ProblemDifficulty,
+      limit: int = LIMIT_MAX) -> List[Problem]:
     operationName = 'problemsetQuestionList'
-    filters = {'status': status.name} if status else {}
     data = {
       'operationName': operationName,
       'query': open(os.path.join('query', operationName)).read(),
       'variables': {
         'categorySlug': 'all-code-essentials',
         'limit': limit,
-        'filters': filters,
+        'filters': {
+          'status': status.name,
+          'difficulty': difficulty.name,
+        }
       },
     }
     graphql_result = json.loads(self._CallGraphql(data))
@@ -135,34 +147,36 @@ def Main(args: argparse.Namespace):
 
   os.makedirs(args.output_dir, exist_ok=True)
   crawler = LeetCodeCrawler()
-  problem_list = crawler.GetProblemList(ProblemStatus.AC)
 
-  for problem in problem_list:
-    problem_dirname = f'{problem.frontendQuestionId}. {problem.title}'
-    problem_dir = os.path.join(args.output_dir, problem_dirname)
-    os.makedirs(problem_dir, exist_ok=True)
+  for difficulty in ProblemDifficulty:
+    for problem in crawler.GetProblemList(ProblemStatus.AC, difficulty):
+      problem_dirname = (
+          f'{int(problem.frontendQuestionId):04d}. {problem.title}')
+      problem_dir = os.path.join(
+          args.output_dir, difficulty.name.capitalize(), problem_dirname)
+      os.makedirs(problem_dir, exist_ok=True)
 
-    submission_id_list = crawler.GetSubmissionIdList(
-        problem.title_slug, SubmissionStatus.ACCEPTED)
+      submission_id_list = crawler.GetSubmissionIdList(
+          problem.title_slug, SubmissionStatus.ACCEPTED)
 
-    date_str_count = {}
-    for submission_id in submission_id_list:
-      submission = crawler.GetSubmission(submission_id)
-      date_str = datetime.fromtimestamp(
-          submission.timestamp).strftime('%Y-%m-%d')
-      suffix = ''
-      if date_str not in date_str_count:
-        date_str_count[date_str] = 1
-      else:
-        date_str_count[date_str] += 1
-        suffix = f'_{date_str_count[date_str]}'
-      filename = f'{date_str}{suffix}_Accepted.{submission.lang_name}'
-      file_path = os.path.join(problem_dir, filename)
-      with open(file_path, 'w') as f:
-        f.write(submission.code)
-        logging.info(f'{file_path} is downloaded.')
+      date_str_count = {}
+      for submission_id in submission_id_list:
+        submission = crawler.GetSubmission(submission_id)
+        date_str = datetime.fromtimestamp(
+            submission.timestamp).strftime('%Y-%m-%d')
+        suffix = ''
+        if date_str not in date_str_count:
+          date_str_count[date_str] = 1
+        else:
+          date_str_count[date_str] += 1
+          suffix = f'_{date_str_count[date_str]}'
+        filename = f'{date_str}{suffix}_Accepted.{submission.lang_name}'
+        file_path = os.path.join(problem_dir, filename)
+        with open(file_path, 'w') as f:
+          f.write(submission.code)
+          logging.info(f'{file_path} is downloaded.')
 
-      sleep(10)  # Download slowly.
+        sleep(10)  # Download slowly.
 
 
 if __name__ == '__main__':

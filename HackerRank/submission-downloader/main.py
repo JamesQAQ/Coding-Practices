@@ -18,6 +18,7 @@ EXTENSION = {
   'mysql': 'sql',
   'python': 'py',
   'python3': 'py',
+  'bash': 'sh',
 }
 
 if __name__ == '__main__':

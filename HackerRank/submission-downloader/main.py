@@ -16,6 +16,8 @@ HEADERS = {
 }
 EXTENSION = {
   'mysql': 'sql',
+  'python': 'py',
+  'python3': 'py',
 }
 
 if __name__ == '__main__':
@@ -37,6 +39,7 @@ if __name__ == '__main__':
     response = json.loads(requests.get(rest_url, headers=HEADERS).text)['model']
 
     prepare_name = response['name'].strip()
+    prepare_name = prepare_name.replace('"', '\'\'').replace(':', '')
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, prepare_name), exist_ok=True)
 

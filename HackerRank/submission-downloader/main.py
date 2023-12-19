@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
   if args.output_dir and args.code_url:
     rest_url = args.code_url.replace(
-        'challenges', 'rest/contests/master/challenges')
+        'com/challenges', 'com/rest/contests/master/challenges')
     rest_url = rest_url.replace('submissions/code', 'submissions')
     response = json.loads(requests.get(rest_url, headers=HEADERS).text)['model']
 

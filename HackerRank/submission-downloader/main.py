@@ -36,7 +36,7 @@ if __name__ == '__main__':
     rest_url = rest_url.replace('submissions/code', 'submissions')
     response = json.loads(requests.get(rest_url, headers=HEADERS).text)['model']
 
-    prepare_name = response['name']
+    prepare_name = response['name'].strip()
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, prepare_name), exist_ok=True)
 

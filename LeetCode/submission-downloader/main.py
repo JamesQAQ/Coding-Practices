@@ -8,7 +8,7 @@ import logging
 import os
 import sys
 from time import sleep
-from typing import List
+from typing import List, Tuple
 
 import requests
 
@@ -23,6 +23,11 @@ HEADERS = {
     'Cookie': cookie.COOKIE,
 }
 LIMIT_MAX = 9999
+EXTENSION_NAME = {
+  'cpp': 'cpp',
+  'python3': 'py',
+  'mysql': 'sql',
+}
 
 
 class ProblemStatus(enum.Enum):
@@ -54,14 +59,16 @@ class SubmissionStatus(enum.Enum):
 class Problem:
   frontendQuestionId: str
   title: str
-  title_slug: str
+  titleSlug: str
 
 
 @dataclass
 class Submission:
   code: str
   timestamp: int
-  lang_name: str
+  statusCode: int
+  langName: str
+  titleSlug: str
 
 
 class LeetCodeCrawler:
@@ -92,7 +99,7 @@ class LeetCodeCrawler:
           Problem(
               frontendQuestionId=question['frontendQuestionId'],
               title=question['title'],
-              title_slug=question['titleSlug']))
+              titleSlug=question['titleSlug']))
     return result
 
   def GetSubmissionIdList(
@@ -133,7 +140,14 @@ class LeetCodeCrawler:
     return Submission(
         code=submissionDetails['code'],
         timestamp=submissionDetails['timestamp'],
-        lang_name=submissionDetails['lang']['name'])
+        statusCode=submissionDetails['statusCode'],
+        langName=EXTENSION_NAME[submissionDetails['lang']['name']],
+        titleSlug=submissionDetails['question']['titleSlug'])
+
+  def GetLatestSubmissionIdList(self, limit: int) -> List[int]:
+    url = f'https://leetcode.com/api/submissions/?offset=0&limit={limit}'
+    api_result = json.loads(requests.get(url, headers=HEADERS).text)
+    return [submission['id'] for submission in api_result['submissions_dump']]
 
   def _CallGraphql(self, data: dict) -> str:
     response = requests.post(URL, headers=HEADERS, json=data)
@@ -147,9 +161,45 @@ def Main(args: argparse.Namespace):
 
   os.makedirs(args.output_dir, exist_ok=True)
   crawler = LeetCodeCrawler()
+  problem_list = {}
+  for difficulty in ProblemDifficulty:
+    problem_list[difficulty] = crawler.GetProblemList(
+        ProblemStatus.AC, difficulty)
+
+  if args.limit:
+    for submission_id in crawler.GetLatestSubmissionIdList(args.limit):
+      submission = crawler.GetSubmission(submission_id)
+      if submission.statusCode == SubmissionStatus.ACCEPTED.value:
+
+        def _GetProblem(titleSlug: str) -> Tuple[Problem, ProblemDifficulty]:
+          for difficulty in ProblemDifficulty:
+            for problem in problem_list[difficulty]:
+              if problem.titleSlug == titleSlug:
+                return (problem, difficulty)
+
+        problem, difficulty = _GetProblem(submission.titleSlug)
+        problem_dir = os.path.join(
+            args.output_dir,
+            difficulty.name.capitalize(),
+            f'{int(problem.frontendQuestionId):04d}. {problem.title}')
+        os.makedirs(problem_dir, exist_ok=True)
+        date_str = datetime.fromtimestamp(
+            submission.timestamp).strftime('%Y-%m-%d')
+        file_path = os.path.join(
+            problem_dir, f'{date_str}_Accepted.{submission.langName}')
+        count = 1
+        while os.path.exists(file_path):
+          count += 1
+          file_path = os.path.join(
+              problem_dir,
+              f'{date_str}_{count}_Accepted.{submission.langName}')
+        with open(file_path, 'w') as f:
+          f.write(submission.code)
+          logging.info(f'{file_path} is downloaded.')
+    return
 
   for difficulty in ProblemDifficulty:
-    for problem in crawler.GetProblemList(ProblemStatus.AC, difficulty):
+    for problem in problem_list[difficulty]:
       problem_dirname = (
           f'{int(problem.frontendQuestionId):04d}. {problem.title}')
       problem_dir = os.path.join(
@@ -157,7 +207,7 @@ def Main(args: argparse.Namespace):
       os.makedirs(problem_dir, exist_ok=True)
 
       submission_id_list = crawler.GetSubmissionIdList(
-          problem.title_slug, SubmissionStatus.ACCEPTED)
+          problem.titleSlug, SubmissionStatus.ACCEPTED)
 
       date_str_count = {}
       for submission_id in submission_id_list:
@@ -170,7 +220,7 @@ def Main(args: argparse.Namespace):
         else:
           date_str_count[date_str] += 1
           suffix = f'_{date_str_count[date_str]}'
-        filename = f'{date_str}{suffix}_Accepted.{submission.lang_name}'
+        filename = f'{date_str}{suffix}_Accepted.{submission.langName}'
         file_path = os.path.join(problem_dir, filename)
         with open(file_path, 'w') as f:
           f.write(submission.code)
@@ -188,4 +238,5 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser()
   parser.add_argument('-o', '--output-dir', type=str)
+  parser.add_argument('-l', '--limit', type=int)
   Main(parser.parse_args())

@@ -144,8 +144,8 @@ class LeetCodeCrawler:
         langName=EXTENSION_NAME[submissionDetails['lang']['name']],
         titleSlug=submissionDetails['question']['titleSlug'])
 
-  def GetLatestSubmissionIdList(self, limit: int) -> List[int]:
-    url = f'https://leetcode.com/api/submissions/?offset=0&limit={limit}'
+  def GetLatestSubmissionIdList(self, offset: int, limit: int) -> List[int]:
+    url = f'https://leetcode.com/api/submissions/?offset={offset}&limit={limit}'
     api_result = json.loads(requests.get(url, headers=HEADERS).text)
     return [submission['id'] for submission in api_result['submissions_dump']]
 
@@ -167,35 +167,40 @@ def Main(args: argparse.Namespace):
         ProblemStatus.AC, difficulty)
 
   if args.limit:
-    for submission_id in crawler.GetLatestSubmissionIdList(args.limit):
-      submission = crawler.GetSubmission(submission_id)
-      if submission.statusCode == SubmissionStatus.ACCEPTED.value:
+    offset = 0
+    while offset < args.limit:
+      limit = min(args.limit - offset, 20)
+      for submission_id in crawler.GetLatestSubmissionIdList(offset, limit):
+        submission = crawler.GetSubmission(submission_id)
+        if submission.statusCode == SubmissionStatus.ACCEPTED.value:
 
-        def _GetProblem(titleSlug: str) -> Tuple[Problem, ProblemDifficulty]:
-          for difficulty in ProblemDifficulty:
-            for problem in problem_list[difficulty]:
-              if problem.titleSlug == titleSlug:
-                return (problem, difficulty)
+          def _GetProblem(titleSlug: str) -> Tuple[Problem, ProblemDifficulty]:
+            for difficulty in ProblemDifficulty:
+              for problem in problem_list[difficulty]:
+                if problem.titleSlug == titleSlug:
+                  return (problem, difficulty)
 
-        problem, difficulty = _GetProblem(submission.titleSlug)
-        problem_dir = os.path.join(
-            args.output_dir,
-            difficulty.name.capitalize(),
-            f'{int(problem.frontendQuestionId):04d}. {problem.title}')
-        os.makedirs(problem_dir, exist_ok=True)
-        date_str = datetime.fromtimestamp(
-            submission.timestamp).strftime('%Y-%m-%d')
-        file_path = os.path.join(
-            problem_dir, f'{date_str}_Accepted.{submission.langName}')
-        count = 1
-        while os.path.exists(file_path):
-          count += 1
+          problem, difficulty = _GetProblem(submission.titleSlug)
+          problem_dir = os.path.join(
+              args.output_dir,
+              difficulty.name.capitalize(),
+              f'{int(problem.frontendQuestionId):04d}. {problem.title}')
+          os.makedirs(problem_dir, exist_ok=True)
+          date_str = datetime.fromtimestamp(
+              submission.timestamp).strftime('%Y-%m-%d')
           file_path = os.path.join(
-              problem_dir,
-              f'{date_str}_{count}_Accepted.{submission.langName}')
-        with open(file_path, 'w') as f:
-          f.write(submission.code)
-          logging.info(f'{file_path} is downloaded.')
+              problem_dir, f'{date_str}_Accepted.{submission.langName}')
+          count = 1
+          while os.path.exists(file_path):
+            count += 1
+            file_path = os.path.join(
+                problem_dir,
+                f'{date_str}_{count}_Accepted.{submission.langName}')
+          with open(file_path, 'w') as f:
+            f.write(submission.code)
+            logging.info(f'{file_path} is downloaded.')
+          sleep(10)  # Download slowly.
+      offset += 20
     return
 
   for difficulty in ProblemDifficulty:

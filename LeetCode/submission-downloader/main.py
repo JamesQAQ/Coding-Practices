@@ -184,7 +184,8 @@ def Main(args: argparse.Namespace):
           problem_dir = os.path.join(
               args.output_dir,
               difficulty.name.capitalize(),
-              f'{int(problem.frontendQuestionId):04d}. {problem.title}')
+              f'{int(problem.frontendQuestionId):04d}. {problem.title}',
+          ).replace('?', '？')
           os.makedirs(problem_dir, exist_ok=True)
           date_str = datetime.fromtimestamp(
               submission.timestamp).strftime('%Y-%m-%d')
@@ -206,7 +207,8 @@ def Main(args: argparse.Namespace):
   for difficulty in ProblemDifficulty:
     for problem in problem_list[difficulty]:
       problem_dirname = (
-          f'{int(problem.frontendQuestionId):04d}. {problem.title}')
+          f'{int(problem.frontendQuestionId):04d}. {problem.title}'
+      ).replace('?', '？')
       problem_dir = os.path.join(
           args.output_dir, difficulty.name.capitalize(), problem_dirname)
       os.makedirs(problem_dir, exist_ok=True)

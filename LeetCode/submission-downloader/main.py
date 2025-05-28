@@ -233,7 +233,7 @@ def Main(args: argparse.Namespace):
           f.write(submission.code)
           logging.info(f'{file_path} is downloaded.')
 
-        sleep(10)  # Download slowly.
+        sleep(2)  # Download slowly.
 
 
 if __name__ == '__main__':

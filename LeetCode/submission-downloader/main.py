@@ -185,7 +185,7 @@ def Main(args: argparse.Namespace):
               args.output_dir,
               difficulty.name.capitalize(),
               f'{int(problem.frontendQuestionId):04d}. {problem.title}',
-          ).replace('?', '？')
+          ).replace('?', '？').strip()
           os.makedirs(problem_dir, exist_ok=True)
           date_str = datetime.fromtimestamp(
               submission.timestamp).strftime('%Y-%m-%d')
@@ -200,7 +200,7 @@ def Main(args: argparse.Namespace):
           with open(file_path, 'w') as f:
             f.write(submission.code)
             logging.info(f'{file_path} is downloaded.')
-          sleep(10)  # Download slowly.
+          sleep(2)  # Download slowly.
       offset += 20
     return
 
@@ -208,7 +208,7 @@ def Main(args: argparse.Namespace):
     for problem in problem_list[difficulty]:
       problem_dirname = (
           f'{int(problem.frontendQuestionId):04d}. {problem.title}'
-      ).replace('?', '？')
+      ).replace('?', '？').strip()
       problem_dir = os.path.join(
           args.output_dir, difficulty.name.capitalize(), problem_dirname)
       os.makedirs(problem_dir, exist_ok=True)

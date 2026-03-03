@@ -1,0 +1,12 @@
+query userProgressSubmissionList($offset: Int!, $limit: Int!, $questionSlug: String!) {
+  userProgressSubmissionList(
+    offset: $offset
+    limit: $limit
+    questionSlug: $questionSlug
+  ) {
+    submissions {
+      id
+      status
+    }
+  }
+}

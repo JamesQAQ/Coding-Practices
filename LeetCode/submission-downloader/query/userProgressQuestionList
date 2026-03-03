@@ -1,0 +1,12 @@
+query userProgressQuestionList($filters: UserProgressQuestionListInput) {
+  userProgressQuestionList(filters: $filters) {
+    questions {
+      frontendId
+      title
+      titleSlug
+      difficulty
+      numSubmitted
+      questionStatus
+    }
+  }
+}
